@@ -5,45 +5,18 @@ const grid = document.createElement('div');
 
 const M = 9
 const N = 9
-const TIME_DELAY = 1 // in milliseconds
+const TIME_DELAY = 100 // in milliseconds
 
 
 grid.style.display = 'grid'
 grid.style.gridTemplateColumns = `repeat(${N},1fr)`
 root.appendChild(grid)
 
-// let MY_GRID = [
-
-//     [0,5,4, 0,7,9, 6,0,0],
-//     [8,0,0, 0,0,0, 0,5,0],
-//     [7,0,0, 0,4,0, 0,0,0],
-
-//     [0,0,0, 0,0,8, 0,0,1],
-//     [0,0,7, 0,0,0, 0,0,0],
-//     [0,4,6, 0,1,0, 0,2,0],
-
-//     [0,0,0, 3,0,0, 9,0,0],
-//     [5,0,0, 0,0,0, 0,0,0],
-//     [0,2,1, 0,8,0, 0,6,0],
-
-// ]
-let MY_GRID = [
-    [5, 3, 0, 0, 7, 0, 0, 0, 0],
-    [6, 0, 0, 1, 9, 5, 0, 0, 0],
-    [0, 9, 8, 0, 0, 0, 0, 6, 0],
-    [8, 0, 0, 0, 6, 0, 0, 0, 3],
-    [4, 0, 0, 8, 0, 3, 0, 0, 1],
-    [7, 0, 0, 0, 2, 0, 0, 0, 6],
-    [0, 6, 0, 0, 0, 0, 2, 8, 0],
-    [0, 0, 0, 4, 1, 9, 0, 0, 5],
-    [0, 0, 0, 0, 8, 0, 0, 7, 9],
-]
 class Cell{
     constructor(i,j){
         this.element = document.createElement('div');
         this.element.classList.add('cell')
         this.pos = {x:i,y:j}
-        
     }
 }
 
@@ -87,9 +60,11 @@ class Grid{
 }
 
 let my_grid = undefined
-
+let MY_GRID = []
 function Initialize(){
+    MY_GRID = get_board()
     my_grid = new Grid(M,N)
+    
 }
 
 Initialize()
@@ -145,4 +120,122 @@ function Solve(){
         return true;
     }
     sudokuSolver()
+}
+
+
+function get_board(){
+    let board = []
+
+
+    class Cell{
+        constructor(){
+            this.value = 0
+            this.entropy = [1,2,3,4,5,6,7,8,9]
+        }
+    }
+    for(let i =0 ; i < 9 ; i++){
+        let temp =[]
+        for(let j = 0 ; j <9;j++){
+            temp.push( new Cell())
+        }
+        board.push(temp)
+    }
+
+    function findLowestEntropy(){
+        let min_ = 9
+        let lowest_cell_i = -1
+        let lowest_cell_j = -1
+        for(let i = 0 ; i < 9 ; i++){
+            for(let j = 0 ; j < 9 ; j++){
+                if (board[i][j].entropy.length < min_){
+                    min_ = board[i][j].entropy.length
+                    lowest_cell_i = i
+                    lowest_cell_j = j
+                }
+            }
+        }
+        return {i:lowest_cell_i, j:lowest_cell_j}
+    }
+    function getRandomItem(items) {
+        return items[Math.floor(Math.random() * items.length)];
+    }
+    function removeItem(r,c,val){
+        let removed = []
+        for(let ele of board[r][c].entropy){
+            if(ele!=val)
+            removed.push(ele)
+        }
+        board[r][c].entropy = removed
+
+    }
+    function updateEntropy(r,c,value){
+        for(let i = 0; i < 9 ; i++){
+            if(board[i][c].value == 0 && i!=r) removeItem(i,c,value)
+            if(board[r][i].value == 0 && i!=c) removeItem(r,i,value)
+        }
+        let gridR = 3*Math.floor(r/3)
+        let gridC = 3*Math.floor(c/3)
+        for(let i = 0; i < 3; i++){
+            for(let j = 0; j <3;j++){
+                if(board[gridR+i][gridC+j].value == 0 && gridR+i != r && gridC+j != c) removeItem(gridR+i,gridC+j,value)
+            }
+        }
+    }
+    function printBoard(){
+        let entropyBoard = []
+        let valueBoard = []
+        for(let i =0 ; i< 9 ; i++){
+            let temp =[]
+            let temp2 = []
+            for(let j = 0 ; j < 9;j++){
+                temp.push(board[i][j].entropy.length)
+                temp2.push(board[i][j].value)
+            }
+            entropyBoard.push(temp)
+            valueBoard.push(temp2)
+        }
+        console.log("-------------------------------- Entropy--------------------------------")
+        console.table(entropyBoard)
+        console.log("-------------------------------- Value --------------------------------")
+        console.table(valueBoard)
+    }
+    function waveFunctionCollapse(r,c){
+        board[r][c].value = getRandomItem(board[r][c].entropy)
+        board[r][c].entropy.length = 10    
+        updateEntropy(r,c,board[r][c].value) // Remove this element from row col and grid
+        let low_cell = findLowestEntropy()
+        let {i,j} = low_cell
+        if(i!=-1 && j!=-1) {
+            waveFunctionCollapse(i,j)
+        }
+        
+}
+
+
+
+let randR = Math.floor(Math.random()*9)
+let randC = Math.floor(Math.random()*9)
+
+waveFunctionCollapse(randR,randC)
+
+
+    let valueBoard = []
+    let isPlacedProbability = 0.1
+    for(let i = 0; i < 9 ; i++){
+        let temp = []
+        for(let j = 0; j < 9 ; j++){
+            if (board[i][j].value == undefined) return get_board()
+            let probability = Math.random()
+            if (probability < isPlacedProbability){
+                temp.push(board[i][j].value)
+            }
+            else{
+                temp.push(0)
+            }
+            
+        }
+        valueBoard.push(temp)
+    }
+
+    return valueBoard
 }
